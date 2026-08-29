@@ -14,6 +14,7 @@ function s.initial_effect(c)
 	e1:SetCategory(CATEGORY_POSITION+CATEGORY_TOGRAVE)
 	e1:SetType(EFFECT_TYPE_IGNITION)
 	e1:SetRange(LOCATION_MZONE)
+	e1:SetCountLimit(1,id)
 	e1:SetTarget(s.postg)
 	e1:SetOperation(s.posop)
 	c:RegisterEffect(e1)
@@ -47,11 +48,16 @@ function s.postg(e,tp,eg,ep,ev,re,r,rp,chk)
 	Duel.SetPossibleOperationInfo(0,CATEGORY_TOGRAVE,nil,1,tp,LOCATION_DECK)
 end
 --"and if you do" -- the mill only happens when the position actually changed.
+--
+--Duel.ChangePosition's two-argument form is (face-up attack -> A, face-DOWN
+--attack -> B); a monster sitting in face-up defence matches neither, so it
+--never moved. The single-argument form sets one position outright, which is
+--what a straight toggle wants.
 function s.posop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	if not c:IsRelateToEffect(e) or Duel.ChangePosition(c,POS_FACEUP_DEFENSE,POS_FACEUP_ATTACK)==0 then
-		return
-	end
+	if not c:IsRelateToEffect(e) then return end
+	local pos=c:IsPosition(POS_FACEUP_ATTACK) and POS_FACEUP_DEFENSE or POS_FACEUP_ATTACK
+	if Duel.ChangePosition(c,pos)==0 then return end
 	if not Duel.IsExistingMatchingCard(s.tgfilter,tp,LOCATION_DECK,0,1,nil) then return end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
 	local g=Duel.SelectMatchingCard(tp,s.tgfilter,tp,LOCATION_DECK,0,1,1,nil)

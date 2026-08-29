@@ -46,14 +46,22 @@ function s.exop(e,tp,eg,ep,ev,re,r,rp)
 		if tc and s.setfilter(tc) and Duel.GetLocationCount(tp,LOCATION_SZONE)>0 then
 			Duel.DisableShuffleCheck()
 			Duel.SSet(tp,tc)
-			--"also it can be activated this turn": a Set Spell/Trap normally
-			--cannot be activated on the turn it was Set, so the permission has
-			--to be granted explicitly and expires with the turn.
-			local e1=Effect.CreateEffect(e:GetHandler())
-			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetCode(EFFECT_TRAP_ACT_IN_SET_TURN)
-			e1:SetReset(RESET_EVENT|RESETS_STANDARD|RESET_PHASE|PHASE_END)
-			tc:RegisterEffect(e1,true)
+			--"also it can be activated this turn": a Set Trap or Quick-Play
+			--Spell normally cannot be activated on the turn it was Set, so the
+			--permission has to be granted explicitly and expires with the turn.
+			--
+			--Both codes are needed. EFFECT_TRAP_ACT_IN_SET_TURN covers Traps
+			--only; a Set Quick-Play Spell is held back by its own restriction
+			--and needs EFFECT_QP_ACT_IN_SET_TURN. Registering just the first
+			--one left every Quick-Play this card Set unusable that turn.
+			for _,code in ipairs({EFFECT_TRAP_ACT_IN_SET_TURN,
+			                      EFFECT_QP_ACT_IN_SET_TURN}) do
+				local e1=Effect.CreateEffect(e:GetHandler())
+				e1:SetType(EFFECT_TYPE_SINGLE)
+				e1:SetCode(code)
+				e1:SetReset(RESET_EVENT|RESETS_STANDARD|RESET_PHASE|PHASE_END)
+				tc:RegisterEffect(e1,true)
+			end
 		elseif tc then
 			Duel.DisableShuffleCheck()
 			Duel.SendtoGrave(tc,REASON_EFFECT)

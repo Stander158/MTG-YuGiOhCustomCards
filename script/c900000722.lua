@@ -18,32 +18,22 @@ function s.initial_effect(c)
 	e1:SetTarget(s.destg)
 	e1:SetOperation(s.desop)
 	c:RegisterEffect(e1)
-	--"Each time a card(s) is added to your hand, gain 800 LP."
+	--"Each time a card(s) is added to your hand, gain 800 LP for each card
+	--added." Likewise 800 damage for the opponent's hand.
 	--
-	--Mandatory and uncapped, which is what "each time" means -- it fires on
-	--normal draws as well, and this set draws a lot. Written literally, per the
-	--author.
+	--Continuous, not a trigger. The printed text has no colon, which in PSCT is
+	--exactly the difference: this applies as the cards arrive rather than
+	--activating, so it takes no chain link and cannot be responded to. Red-Eyes
+	--Flare Metal Dragon (44405066) is the reference -- its burn is
+	--EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS for the same reason. Built as a
+	--TRIGGER_F first, which put it on the chain and let the opponent respond to
+	--every draw.
 	local e2=Effect.CreateEffect(c)
-	e2:SetDescription(aux.Stringid(id,1))
-	e2:SetCategory(CATEGORY_RECOVER)
-	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_F)
+	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
 	e2:SetCode(EVENT_TO_HAND)
 	e2:SetRange(LOCATION_MZONE)
-	e2:SetCondition(s.lpcon)
-	e2:SetTarget(s.lptg)
-	e2:SetOperation(s.lpop)
+	e2:SetOperation(s.handop)
 	c:RegisterEffect(e2)
-	--"Each time a card(s) is added to your opponent's hand, inflict 800 damage."
-	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(id,2))
-	e3:SetCategory(CATEGORY_DAMAGE)
-	e3:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_F)
-	e3:SetCode(EVENT_TO_HAND)
-	e3:SetRange(LOCATION_MZONE)
-	e3:SetCondition(s.damcon)
-	e3:SetTarget(s.damtg)
-	e3:SetOperation(s.damop)
-	c:RegisterEffect(e3)
 end
 s.listed_series={SET_MTG}
 s.listed_names={CARD_MTG_SWAMP}
@@ -64,28 +54,22 @@ function s.desop(e,tp,eg,ep,ev,re,r,rp)
 	end
 end
 
---One trigger per event, not per card: "a card(s)" is a single addition.
+--Counted per card, not per event: the author's original wording ended "inflict
+--800 damage to them for each", so two cards drawn is 1600, not 800.
 function s.handfilter(c,tp)
 	return c:IsLocation(LOCATION_HAND) and c:IsControler(tp)
 end
-function s.lpcon(e,tp,eg,ep,ev,re,r,rp)
-	return eg:IsExists(s.handfilter,1,nil,tp)
-end
-function s.lptg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-	Duel.SetOperationInfo(0,CATEGORY_RECOVER,nil,0,tp,800)
-end
-function s.lpop(e,tp,eg,ep,ev,re,r,rp)
-	Duel.Recover(tp,800,REASON_EFFECT)
-end
-
-function s.damcon(e,tp,eg,ep,ev,re,r,rp)
-	return eg:IsExists(s.handfilter,1,nil,1-tp)
-end
-function s.damtg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-	Duel.SetOperationInfo(0,CATEGORY_DAMAGE,nil,0,1-tp,800)
-end
-function s.damop(e,tp,eg,ep,ev,re,r,rp)
-	Duel.Damage(1-tp,800,REASON_EFFECT)
+--Both halves in one operation, since a single event can add cards to both
+--hands and each side is paid separately.
+function s.handop(e,tp,eg,ep,ev,re,r,rp)
+	local mine=eg:FilterCount(s.handfilter,nil,tp)
+	local theirs=eg:FilterCount(s.handfilter,nil,1-tp)
+	if mine>0 then
+		Duel.Hint(HINT_CARD,0,id)
+		Duel.Recover(tp,800*mine,REASON_EFFECT)
+	end
+	if theirs>0 then
+		Duel.Hint(HINT_CARD,0,id)
+		Duel.Damage(1-tp,800*theirs,REASON_EFFECT)
+	end
 end
