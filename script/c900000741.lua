@@ -57,9 +57,15 @@ function s.mtgfilter(c)
 end
 
 --"When this card resolves: Place 3 Wandering Emperor Counters on it."
+--
+--Only the location is checked. An IsRelateToEffect guard was here too, and it
+--is the one link in this chain that cannot be verified statically -- if it ever
+--reads false the card lands with no counters, which silently removes two of its
+--three menu options and makes the whole effect look like it works only
+--sometimes.
 function s.actop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	if c:IsRelateToEffect(e) and c:IsLocation(LOCATION_SZONE) then
+	if c:IsLocation(LOCATION_SZONE) and c:IsFaceup() then
 		c:AddCounter(COUNTER_WANDERING_EMPEROR,3)
 	end
 end
