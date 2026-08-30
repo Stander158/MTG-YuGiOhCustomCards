@@ -32,9 +32,10 @@ function s.rmfilter(c)
 end
 function s.lpop(e,tp,eg,ep,ev,re,r,rp)
 	Duel.Recover(tp,1200,REASON_EFFECT)
-	if MTG.BanishedCount(tp,id)<3 then return end
+	if MTG.BanishedCount(tp,id)<3 or not MTG.BonusAvailable(tp,id) then return end
 	if not Duel.IsExistingMatchingCard(s.rmfilter,tp,LOCATION_MZONE,LOCATION_MZONE,1,nil) then return end
 	if not Duel.SelectYesNo(tp,aux.Stringid(id,1)) then return end
+	MTG.UseBonus(tp,id)
 	Duel.BreakEffect()
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_REMOVE)
 	local g=Duel.SelectMatchingCard(tp,s.rmfilter,tp,LOCATION_MZONE,LOCATION_MZONE,1,1,nil)

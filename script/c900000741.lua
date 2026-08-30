@@ -33,12 +33,19 @@ function s.initial_effect(c)
 	e4:SetTargetRange(1,0)
 	e4:SetValue(s.damval)
 	c:RegisterEffect(e4)
-	--"Once per turn: You can activate 1 of these effects."
+	--"Once per turn (Quick Effect): You can activate 1 of these effects."
+	--
+	--EFFECT_TYPE_QUICK_O, not IGNITION. As an ignition effect this was usable
+	--only in your own Main Phase, which is what "can't activate it on the
+	--opponent's turn" was. The card it is named after is instant-speed, and a
+	--Continuous Trap that can only act on its controller's turn is a strange
+	--thing, so the printed text gains "(Quick Effect)" to match.
 	local e5=Effect.CreateEffect(c)
 	e5:SetDescription(aux.Stringid(id,0))
 	e5:SetCategory(CATEGORY_ATKCHANGE+CATEGORY_DEFCHANGE+CATEGORY_SPECIAL_SUMMON
 		+CATEGORY_TOKEN+CATEGORY_REMOVE+CATEGORY_COUNTER)
-	e5:SetType(EFFECT_TYPE_IGNITION)
+	e5:SetType(EFFECT_TYPE_QUICK_O)
+	e5:SetCode(EVENT_FREE_CHAIN)
 	e5:SetRange(LOCATION_SZONE)
 	e5:SetCountLimit(1)
 	e5:SetTarget(s.efftg)
@@ -72,15 +79,22 @@ end
 
 --The value function is where the engine asks how much damage to apply, so the
 --replacement is decided here. Returning 0 is what "instead" means; the counter
---is the price. Guarded on the card still being face-up in the Spell & Trap
---Zone, since this effect keeps its range but damage can be dealt at odd times.
+--is the price.
+--
+--Mandatory, not optional, and that is forced by the engine rather than chosen:
+--a prompt here dies with "function yesno action is not allowed here". Value
+--functions may have side effects -- Duel.Hint and e:Reset are used this way by
+--shipped cards -- but they may not stop and ask the player anything, and no
+--shipped card prompts from one. There is no optional-replacement mechanism for
+--damage the way there is for destruction, so the printed text drops its "you
+--can" to match what the card actually does.
 function s.damval(e,re,val,r,rp,rc)
 	local c=e:GetHandler()
 	local tp=c:GetControler()
 	if val<=0 then return val end
 	if not (c:IsFaceup() and c:IsLocation(LOCATION_SZONE)) then return val end
 	if c:GetCounter(COUNTER_WANDERING_EMPEROR)<1 then return val end
-	if not Duel.SelectYesNo(tp,aux.Stringid(id,3)) then return val end
+	Duel.Hint(HINT_CARD,0,id)
 	c:RemoveCounter(tp,COUNTER_WANDERING_EMPEROR,1,REASON_EFFECT)
 	return 0
 end

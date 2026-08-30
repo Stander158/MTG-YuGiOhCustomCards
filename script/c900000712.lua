@@ -34,7 +34,8 @@ end
 function s.damop(e,tp,eg,ep,ev,re,r,rp)
 	local p,d=Duel.GetChainInfo(0,CHAININFO_TARGET_PLAYER,CHAININFO_TARGET_PARAM)
 	Duel.Damage(p,d,REASON_EFFECT)
-	if MTG.BanishedCount(tp,id)>=3 then
+	if MTG.BanishedCount(tp,id)>=3 and MTG.BonusAvailable(tp,id) then
+		MTG.UseBonus(tp,id)
 		Duel.BreakEffect()
 		Duel.Damage(1-tp,1200,REASON_EFFECT)
 	end

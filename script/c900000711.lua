@@ -67,7 +67,9 @@ function s.exop(e,tp,eg,ep,ev,re,r,rp)
 			Duel.SendtoGrave(tc,REASON_EFFECT)
 		end
 	end
-	if MTG.BanishedCount(tp,id)>=3 and Duel.IsPlayerCanDraw(tp,3) then
+	if MTG.BanishedCount(tp,id)>=3 and MTG.BonusAvailable(tp,id)
+		and Duel.IsPlayerCanDraw(tp,3) then
+		MTG.UseBonus(tp,id)
 		Duel.BreakEffect()
 		Duel.Draw(tp,3,REASON_EFFECT)
 	end
