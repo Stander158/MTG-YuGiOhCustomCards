@@ -133,13 +133,16 @@ function MTG.BanishedCount(tp,code)
 	return Duel.GetMatchingGroupCount(Card.IsCode,tp,LOCATION_REMOVED,0,nil,code)
 end
 
---Once per turn for a land's bonus half only, not for the whole trigger.
+--Once per DUEL for a land's bonus half only, not for the whole trigger.
 --
 --The distinction matters: the bonus needs all 3 copies banished, so the third
---banish of the turn is the one that turns it on. Limiting the whole effect
---instead would spend the allowance on the first banish and the bonus could
---never happen at all. Limiting nothing lets all three copies each pay out --
---three separate "draw 3" from one land.
+--banish is the one that turns it on. Limiting the whole effect instead would
+--spend the allowance on the first banish and the bonus could never happen at
+--all. Limiting nothing lets all three copies each pay out -- three separate
+--"draw 3" from one land, every turn.
+--
+--A flag registered with reset 0 is never cleared, which is what makes it once
+--per Duel rather than once per turn.
 --
 --Its own flag code, derived from the passcode's last two digits, because
 --SetCountLimit already registers a counter under the passcode itself and a flag
@@ -153,7 +156,7 @@ function MTG.BonusAvailable(tp,code)
 end
 
 function MTG.UseBonus(tp,code)
-	Duel.RegisterFlagEffect(tp,MTG.BonusFlag(code),RESET_PHASE|PHASE_END,0,1)
+	Duel.RegisterFlagEffect(tp,MTG.BonusFlag(code),0,0,1)
 end
 
 --"During your Standby Phase, if this card is banished: Shuffle it into the
