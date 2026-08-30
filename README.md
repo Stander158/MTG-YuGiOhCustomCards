@@ -1,6 +1,6 @@
 # "MTG" — custom cards for EDOPro
 
-16 custom Yu-Gi-Oh! cards for **Project Ignis: EDOPro**, translating Magic: The
+17 custom Yu-Gi-Oh! cards for **Project Ignis: EDOPro**, translating Magic: The
 Gathering's land economy into Yu-Gi-Oh.
 
 Cards from your Extra Deck are banished face-up to pay for things. The five
@@ -64,30 +64,31 @@ Copy `mtg-cards.cdb`, `strings.conf`, `script/` and `pics/` into your EDOPro
 | 900000722 | MTG Sheoldred, the Apocalypse | DARK / Fiend |
 | 900000723 | MTG Elesh Norn, Grand Cenobite | LIGHT / Fiend |
 | 900000724 | MTG Jin-Gitaxias, Progress Tyrant | WATER / Fiend |
+| 900000725 | MTG Vorinclex, Voice of Hunger | EARTH / Fiend |
 | 900000731 | MTG Llanowar Elves | EARTH / Spellcaster |
 | 900000741 | MTG Wandering Emperor | Trap / Continuous |
 | 900000742 | MTG Memory Deluge | Spell / Quick-Play |
 | 900000743 | MTG Force of Will | Trap / Counter |
 | 900000744 | MTG Infernal Grasp | Spell / Quick-Play |
-| 900000745 | MTG Mu Terra Grand | Spell / Field |
+| 900000745 | Mu Terra Grand | Spell / Field |
 | 900000746 | MTG Scheme of the Praetor | Spell / Continuous |
 
 Plus `Samurai of the Emperor Token` (900000791), which MTG Wandering Emperor
-summons.
-
-**MTG Vorinclex, Voice of Hunger** is designed but not included. Its "double any
-numerical values in the continuous effects of "MTG" cards you control" has no
-general mechanism in the engine, so it would have to hand-wire every affected
-number and be revisited by every card added afterwards. Passcode 900000725 is
-reserved for it.
+summons. `Mu Terra Grand` is part of the set but deliberately not an "MTG"
+card itself -- it searches the archetype without belonging to it.
 
 ## Status
 
-**Untested in an actual duel.** Every card loads through the real ocgcore and
-passes a static check of every API call it makes, but none has been played yet.
-Bug reports are welcome — the three most likely places for something to be wrong
-are MTG Wandering Emperor's damage replacement, MTG Llanowar Elves' battle
-position lock, and MTG Elesh Norn's "becomes 0" check.
+Playtested, and a first round of reports has been fixed: the lands not returning
+from the banish zone, MTG Wandering Emperor crashing on damage, MTG Elesh Norn
+sweeping Link monsters that have no DEF to reduce, MTG Swamp leaving the
+opponent's hand revealed, and several effects whose printed limits and code
+disagreed.
+
+Still worth watching: MTG Llanowar Elves' battle position lock is a trigger
+standing in for a continuous effect the engine does not have, and MTG Elesh
+Norn cannot tell a monster reduced to 0 ATK from one printed at 0, so it sends
+both. Bug reports welcome.
 
 ## Credits
 
