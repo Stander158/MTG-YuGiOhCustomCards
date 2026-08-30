@@ -23,8 +23,14 @@ function s.initial_effect(c)
 	local e3=e2:Clone()
 	e3:SetCode(EFFECT_TRAP_ACT_IN_SET_TURN)
 	c:RegisterEffect(e3)
-	--"Each time you would take battle or effect damage, you can remove 1
-	--Wandering Emperor Counter from this card instead."
+	--"Each time you would take battle or effect damage, remove 1 Wandering
+	--Emperor Counter from this card instead."
+	--
+	--Shaped after Black-Winged Dragon (9012916), which replaces damage the same
+	--way: EFFECT_CHANGE_DAMAGE paired with an EFFECT_NO_EFFECT_DAMAGE clone
+	--sharing one value function. The first changes the number, the second is
+	--what actually stops effect damage happening; registering only the first
+	--leaves some paths through.
 	local e4=Effect.CreateEffect(c)
 	e4:SetType(EFFECT_TYPE_FIELD)
 	e4:SetCode(EFFECT_CHANGE_DAMAGE)
@@ -33,6 +39,23 @@ function s.initial_effect(c)
 	e4:SetTargetRange(1,0)
 	e4:SetValue(s.damval)
 	c:RegisterEffect(e4)
+	local e4b=e4:Clone()
+	e4b:SetCode(EFFECT_NO_EFFECT_DAMAGE)
+	c:RegisterEffect(e4b)
+	--Bookkeeping: spend the counters the damage replacement owes, then destroy
+	--this card once none are left.
+	--
+	--"If this card has no Wandering Emperor Counters, destroy it." is guarded on
+	--the card having been charged: it spends the first instant of its own
+	--resolution at zero counters, before actop places the three, and would
+	--otherwise destroy itself on the way in.
+	local e6=Effect.CreateEffect(c)
+	e6:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+	e6:SetCode(EVENT_ADJUST)
+	e6:SetRange(LOCATION_SZONE)
+	e6:SetCondition(s.adjcon)
+	e6:SetOperation(s.adjop)
+	c:RegisterEffect(e6)
 	--"Once per turn (Quick Effect): You can activate 1 of these effects."
 	--
 	--EFFECT_TYPE_QUICK_O, not IGNITION. As an ignition effect this was usable
@@ -74,6 +97,31 @@ function s.actop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
 	if c:IsLocation(LOCATION_SZONE) and c:IsFaceup() then
 		c:AddCounter(COUNTER_WANDERING_EMPEROR,3)
+		--Marks the card as charged, so the "no counters left" check below knows
+		--the difference between spent and not yet placed.
+		c:RegisterFlagEffect(id,RESET_EVENT|RESETS_STANDARD,0,1)
+	end
+end
+
+function s.adjcon(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	return Duel.GetFlagEffect(tp,MTG_FLAG_EMPEROR_SPEND)>0
+		or (c:GetFlagEffect(id)>0 and c:GetCounter(COUNTER_WANDERING_EMPEROR)==0)
+end
+function s.adjop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	local owed=Duel.GetFlagEffect(tp,MTG_FLAG_EMPEROR_SPEND)
+	if owed>0 then
+		Duel.ResetFlagEffect(tp,MTG_FLAG_EMPEROR_SPEND)
+		local ct=c:GetCounter(COUNTER_WANDERING_EMPEROR)
+		if ct>0 then
+			if owed>ct then owed=ct end
+			c:RemoveCounter(tp,COUNTER_WANDERING_EMPEROR,owed,REASON_EFFECT)
+		end
+	end
+	if c:GetFlagEffect(id)>0 and c:GetCounter(COUNTER_WANDERING_EMPEROR)==0 then
+		Duel.Hint(HINT_CARD,0,id)
+		Duel.Destroy(c,REASON_EFFECT)
 	end
 end
 
@@ -82,20 +130,24 @@ end
 --is the price.
 --
 --Mandatory, not optional, and that is forced by the engine rather than chosen:
---a prompt here dies with "function yesno action is not allowed here". Value
---functions may have side effects -- Duel.Hint and e:Reset are used this way by
---shipped cards -- but they may not stop and ask the player anything, and no
---shipped card prompts from one. There is no optional-replacement mechanism for
---damage the way there is for destruction, so the printed text drops its "you
---can" to match what the card actually does.
+--a prompt here dies with "function yesno action is not allowed here".
+--
+--The counter is NOT spent here. Adding one from a value function works -- that
+--is what Black-Winged Dragon does -- but removing one silently does nothing:
+--the damage was replaced and the counter stayed put, so the card absorbed
+--everything forever. So this only records the debt, and the EVENT_ADJUST
+--bookkeeping above pays it a moment later. A flag is used rather than a
+--counter because registering one is permitted here; repeated calls accumulate,
+--which is also the dedup: however many times the engine asks, the total owed is
+--what gets spent.
 function s.damval(e,re,val,r,rp,rc)
 	local c=e:GetHandler()
-	local tp=c:GetControler()
 	if val<=0 then return val end
 	if not (c:IsFaceup() and c:IsLocation(LOCATION_SZONE)) then return val end
 	if c:GetCounter(COUNTER_WANDERING_EMPEROR)<1 then return val end
 	Duel.Hint(HINT_CARD,0,id)
-	c:RemoveCounter(tp,COUNTER_WANDERING_EMPEROR,1,REASON_EFFECT)
+	Duel.RegisterFlagEffect(c:GetControler(),MTG_FLAG_EMPEROR_SPEND,
+		RESET_PHASE|PHASE_END,0,1)
 	return 0
 end
 

@@ -33,6 +33,9 @@ CARD_SAMURAI_TOKEN = 900000791
 --registers its counter under the passcode, and a flag keyed to the same number
 --fights it.
 MTG_FLAG_BANISHED_THIS_TURN = 0x9a570001
+--Wandering Emperor's damage replacement records what it owes here rather than
+--spending it on the spot; see that card for why.
+MTG_FLAG_EMPEROR_SPEND      = 0x9a570002
 
 ------------------------------------------------------------------------------
 -- Banishing from the Extra Deck
