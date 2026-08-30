@@ -69,8 +69,14 @@ function s.othertarget(e,c)
 	return c~=e:GetHandler()
 end
 
+--A Link monster has no DEF at all, and the engine reports that absence as 0 --
+--which is not the same as a value that was reduced to 0. Reading it as one swept
+--every Link monster off the opponent's board the moment this card landed. Only
+--ATK is meaningful for them.
 function s.tgfilter(c)
-	return c:IsFaceup() and (c:GetAttack()==0 or c:GetDefense()==0) and c:IsAbleToGrave()
+	if not (c:IsFaceup() and c:IsAbleToGrave()) then return false end
+	if c:GetAttack()==0 then return true end
+	return not c:IsType(TYPE_LINK) and c:GetDefense()==0
 end
 function s.tgcon(e,tp,eg,ep,ev,re,r,rp)
 	return e:GetHandler():IsFaceup()
