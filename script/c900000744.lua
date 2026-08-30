@@ -26,7 +26,9 @@ function s.initial_effect(c)
 	e2:SetCategory(CATEGORY_DAMAGE+CATEGORY_DESTROY)
 	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_IGNITION)
 	e2:SetRange(LOCATION_GRAVE)
-	e2:SetCountLimit(1,id)
+	--No count limit: the printed text does not have one. The cost is what
+	--bounds it -- this card plus 3 Extra Deck cards including a named land,
+	--and there are only 3 copies of that land in the whole Extra Deck.
 	e2:SetCost(s.gycost)
 	e2:SetTarget(s.gytg)
 	e2:SetOperation(s.gyop)

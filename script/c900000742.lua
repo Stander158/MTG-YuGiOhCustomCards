@@ -4,25 +4,35 @@ Duel.LoadScript("mtg_common.lua")
 local s,id=GetID()
 function s.initial_effect(c)
 	MTG.InstallTrackers()
-	--Activate. The card has no on-resolution effect of its own: the banish is
-	--the point, since it is what turns the lands over. Kept as the author wrote
-	--it -- flagged in the set notes as unusual rather than silently filled in.
+	--"To activate this card, you must banish 2 cards from your Extra Deck
+	--face-up, including 1 "MTG Island"; excavate cards from the top of your Deck
+	--equal to the number of cards banished this turn, add up to 2 excavated
+	--cards that mention "MTG" to your hand, also place the rest on the bottom of
+	--your Deck in any order."
 	local e1=Effect.CreateEffect(c)
+	e1:SetDescription(aux.Stringid(id,0))
+	e1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH+CATEGORY_TODECK)
 	e1:SetType(EFFECT_TYPE_ACTIVATE)
 	e1:SetCode(EVENT_FREE_CHAIN)
 	e1:SetCost(MTG.ExtraBanishCost(2,CARD_MTG_ISLAND))
+	e1:SetTarget(s.extg)
+	e1:SetOperation(s.exop)
 	c:RegisterEffect(e1)
 	--"You can banish this card from your GY and banish 3 cards from your Extra
-	--Deck face-up, including 1 "MTG Island"; excavate cards equal to the number
-	--of cards banished this turn, add up to 2 that mention "MTG", bottom-deck
-	--the rest."
+	--Deck face-up, including 1 "MTG Island"; [the same excavation]."
+	--
+	--Same payload, different price -- three Extra Deck cards instead of two, and
+	--the card itself. Both routes share s.exop rather than repeating it, so a
+	--change to the excavation cannot land on only one of them.
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,0))
 	e2:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH+CATEGORY_TODECK)
 	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_IGNITION)
 	e2:SetRange(LOCATION_GRAVE)
-	e2:SetCountLimit(1,id)
-	e2:SetCost(s.excost)
+	--No count limit: the printed text does not have one. The cost is what
+	--bounds it -- this card plus 3 Extra Deck cards including a named land,
+	--and there are only 3 copies of that land in the whole Extra Deck.
+	e2:SetCost(s.gycost)
 	e2:SetTarget(s.extg)
 	e2:SetOperation(s.exop)
 	c:RegisterEffect(e2)
@@ -31,7 +41,7 @@ s.listed_series={SET_MTG}
 s.listed_names={CARD_MTG_ISLAND}
 
 --Two banishes in one cost: this card itself, plus three from the Extra Deck.
-function s.excost(e,tp,eg,ep,ev,re,r,rp,chk)
+function s.gycost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then
 		return e:GetHandler():IsAbleToRemoveAsCost()
 			and MTG.CanPayExtra(tp,3,CARD_MTG_ISLAND)
@@ -49,8 +59,8 @@ function s.thfilter(c)
 	return c:ListsArchetype(SET_MTG) and c:IsAbleToHand()
 end
 --"the number of cards banished this turn" is read after the cost has been paid,
---so this card and the three Extra Deck cards are included -- which is what
---makes the effect scale with how much the deck has been churning.
+--so this card and the Extra Deck cards are included -- which is what makes the
+--effect scale with how much the deck has been churning.
 function s.exop(e,tp,eg,ep,ev,re,r,rp)
 	local ct=MTG.BanishedThisTurn()
 	if ct<=0 then return end
