@@ -66,7 +66,7 @@ function s.initial_effect(c)
 	local e5=Effect.CreateEffect(c)
 	e5:SetDescription(aux.Stringid(id,0))
 	e5:SetCategory(CATEGORY_ATKCHANGE+CATEGORY_DEFCHANGE+CATEGORY_SPECIAL_SUMMON
-		+CATEGORY_TOKEN+CATEGORY_REMOVE+CATEGORY_COUNTER)
+		+CATEGORY_TOKEN+CATEGORY_REMOVE+CATEGORY_COUNTER+CATEGORY_RECOVER)
 	e5:SetType(EFFECT_TYPE_QUICK_O)
 	e5:SetCode(EVENT_FREE_CHAIN)
 	e5:SetRange(LOCATION_SZONE)
@@ -217,5 +217,8 @@ function s.effop(e,tp,eg,ep,ev,re,r,rp)
 		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_REMOVE)
 		local g=Duel.SelectMatchingCard(tp,s.rmfilter,tp,LOCATION_MZONE,LOCATION_MZONE,1,1,nil)
 		if #g>0 then Duel.Remove(g,POS_FACEUP,REASON_EFFECT) end
+		--"also gain 800 LP" -- not conditional on the banish, which is what
+		--"also" means as opposed to "and if you do".
+		Duel.Recover(tp,800,REASON_EFFECT)
 	end
 end
