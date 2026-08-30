@@ -27,10 +27,16 @@ end
 s.listed_series={SET_MTG}
 s.listed_names={CARD_MTG_MOUNTAIN}
 
+--The hand card is banished FACE-DOWN, so the availability check has to ask
+--about a face-down banish too; the default asks about a face-up one, which is a
+--different question and can answer yes where the actual cost would fail.
+function s.fdcost(c)
+	return c:IsAbleToRemoveAsCost(POS_FACEDOWN)
+end
 function s.handcon(e)
 	local tp=e:GetHandlerPlayer()
 	return Duel.CheckLPCost(tp,400)
-		and Duel.IsExistingMatchingCard(Card.IsAbleToRemoveAsCost,tp,LOCATION_HAND,0,1,e:GetHandler())
+		and Duel.IsExistingMatchingCard(s.fdcost,tp,LOCATION_HAND,0,1,e:GetHandler())
 end
 
 --One cost function for both routes. The Extra Deck banish is always owed; the
@@ -44,7 +50,7 @@ function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 		if not MTG.CanPayExtra(tp,2,CARD_MTG_MOUNTAIN) then return false end
 		if fromhand then
 			return Duel.CheckLPCost(tp,400)
-				and Duel.IsExistingMatchingCard(Card.IsAbleToRemoveAsCost,tp,LOCATION_HAND,0,1,c)
+				and Duel.IsExistingMatchingCard(s.fdcost,tp,LOCATION_HAND,0,1,c)
 		end
 		return true
 	end
@@ -53,7 +59,7 @@ function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if fromhand then
 		Duel.PayLPCost(tp,400)
 		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_REMOVE)
-		local hg=Duel.SelectMatchingCard(tp,Card.IsAbleToRemoveAsCost,tp,LOCATION_HAND,0,1,1,c)
+		local hg=Duel.SelectMatchingCard(tp,s.fdcost,tp,LOCATION_HAND,0,1,1,c)
 		--Face-down, which hides it from anything that reads the banish zone.
 		if #hg>0 then Duel.Remove(hg,POS_FACEDOWN,REASON_COST) end
 	end
@@ -65,7 +71,10 @@ end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
 	Duel.SetOperationInfo(0,CATEGORY_NEGATE,eg,1,0,0)
-	if re:GetHandler():IsDestructable() then
+	--Both guards, matching Ultimate Providence (38891741) and Solemn Strike:
+	--the activated card may not be destroyable, and it may no longer be the card
+	--the effect belongs to by the time this resolves.
+	if re:GetHandler():IsDestructable() and re:GetHandler():IsRelateToEffect(re) then
 		Duel.SetOperationInfo(0,CATEGORY_DESTROY,eg,1,0,0)
 	end
 end
