@@ -136,22 +136,37 @@ end
 --"During your Standby Phase, if this card is banished: Shuffle it into the
 --Extra Deck."
 --
---Identical on all five lands, so it lives here. Optional ("You can" is absent
---from the printed text, but the engine still needs the card to be relevant to
---the effect when it resolves -- it may have left the banish zone in between).
+--Identical on all five lands, so it lives here. Mandatory: the printed text has
+--no "You can", though the card still has to be relevant to the effect when it
+--resolves, since it may have left the banish zone in between.
 --
---No SetRange: for an EFFECT_TYPE_SINGLE trigger the engine tracks the card
---itself, which is how Maliss <P> White Rabbit does its own banish trigger.
+--EFFECT_TYPE_**FIELD**, not SINGLE. A phase change is a field event, so a
+--single-card trigger never receives it -- registered as SINGLE this fired for
+--none of the five lands and none of them ever came back. Every shipped card
+--that triggers on a phase uses FIELD with a range saying where the card must
+--be; Ghost Reaper equivalents in the banish zone are written exactly this way.
+--The mistake is invisible to both validation passes: it is real API, correctly
+--spelled, and it loads without complaint.
 function MTG.AddStandbyReturn(c,strid)
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(strid)
 	e1:SetCategory(CATEGORY_TODECK)
-	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_F)
+	e1:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_F)
 	e1:SetCode(EVENT_PHASE+PHASE_STANDBY)
 	e1:SetRange(LOCATION_REMOVED)
 	e1:SetCountLimit(1)
+	--"During your Standby Phase" -- the turn player check is what makes it
+	--yours rather than either player's.
+	--
+	--The turn-ID guard is borrowed from Metaphys Nephthys (72355272), which
+	--tests GetTurnCount()==GetTurnID()+1 so a card cannot come back during the
+	--same turn it left. Normal play never reaches that here, since the Standby
+	--Phase precedes the Main Phase these are banished in -- but a land banished
+	--during your own Draw or Standby Phase would otherwise bounce straight back.
 	e1:SetCondition(function(e,tp,eg,ep,ev,re,r,rp)
-		return Duel.GetTurnPlayer()==tp and e:GetHandler():IsLocation(LOCATION_REMOVED)
+		local c=e:GetHandler()
+		return Duel.GetTurnPlayer()==tp and c:IsLocation(LOCATION_REMOVED)
+			and c:GetTurnID()~=Duel.GetTurnCount()
 	end)
 	e1:SetTarget(function(e,tp,eg,ep,ev,re,r,rp,chk)
 		if chk==0 then return e:GetHandler():IsAbleToExtra() end
