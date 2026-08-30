@@ -74,9 +74,15 @@ end
 function s.tdfilter(c)
 	return c:IsAbleToDeck() or c:IsAbleToExtra()
 end
+--"ignoring its Summoning conditions" -- the last two arguments are nocheck and
+--nolimit. Both are needed: every main-deck "MTG" monster says "Must first be
+--Special Summoned by banishing...", which sets a revive limit, and the ones this
+--card puts in the GY got there by being discarded rather than properly summoned.
+--Without this the revival had almost no legal target, least of all the monsters
+--this card had just discarded itself.
 function s.spfilter(c,e,tp)
 	return c:IsSetCard(SET_MTG) and c:IsMonster()
-		and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+		and c:IsCanBeSpecialSummoned(e,0,tp,true,true)
 end
 function s.tdtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingTarget(s.tdfilter,tp,LOCATION_REMOVED,0,5,nil) end
@@ -94,5 +100,5 @@ function s.tdop(e,tp,eg,ep,ev,re,r,rp)
 	Duel.BreakEffect()
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
 	local sg=Duel.SelectMatchingCard(tp,s.spfilter,tp,LOCATION_GRAVE,0,1,1,nil,e,tp)
-	if #sg>0 then Duel.SpecialSummon(sg,0,tp,tp,false,false,POS_FACEUP) end
+	if #sg>0 then Duel.SpecialSummon(sg,0,tp,tp,true,true,POS_FACEUP) end
 end
